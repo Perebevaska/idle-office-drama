@@ -1,0 +1,162 @@
+[
+  {
+    "id": "yogurt_conflict",
+    "template": "{actor} съел йогурт {target} из холодильника. {target} в ярости.",
+    "conditions": { "sameDepartment": false, "needsTarget": true, "relationshipBelow": 30 },
+    "outcomes": {
+      "ignore": { "relationship": -10, "mood": -5 },
+      "resolve": { "relationship": 15, "cost": 500 },
+      "fire": { "removeActor": true, "teamMood": -20 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Игнорировать" },
+      { "outcome": "resolve", "label": "Купить всем йогурты (500₽)" },
+      { "outcome": "fire", "label": "Уволить виновного" }
+    ],
+    "cooldown": 20
+  },
+  {
+    "id": "burnout",
+    "template": "{actor} тихо выгорает за рабочим столом. Третий день не улыбается.",
+    "conditions": { "actorTraits": ["трудоголик", "выгоревший"], "minStress": 65 },
+    "outcomes": {
+      "ignore": { "stress": 10, "productivity": -15 },
+      "vacation": { "stress": -40, "mood": 20, "cost": 1000 },
+      "talk": { "stress": -15, "mood": 10, "relationship": 10 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Не до этого сейчас" },
+      { "outcome": "vacation", "label": "Отправить в отпуск (1000₽)" },
+      { "outcome": "talk", "label": "Поговорить по душам" }
+    ],
+    "cooldown": 25
+  },
+  {
+    "id": "gossip",
+    "template": "{actor} распускает слухи про {target} у кулера.",
+    "conditions": { "actorTraits": ["интриган", "токсичный"], "needsTarget": true },
+    "outcomes": {
+      "ignore": { "relationship": -15, "teamMood": -8 },
+      "warn": { "stress": 10, "relationship": -5 },
+      "fire": { "removeActor": true, "teamMood": 10 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Сплетни — это норма" },
+      { "outcome": "warn", "label": "Сделать выговор" },
+      { "outcome": "fire", "label": "Уволить интригана" }
+    ],
+    "cooldown": 18
+  },
+  {
+    "id": "great_deal",
+    "template": "{actor} закрыл огромную сделку! Весь отдел ликует.",
+    "conditions": { "actorTraits": ["амбициозный", "гений"], "needsTarget": false },
+    "outcomes": {
+      "ignore": { "mood": 5 },
+      "bonus": { "mood": 25, "loyalty": 20, "teamMood": 15, "cost": 2000 },
+      "praise": { "mood": 15, "loyalty": 10, "teamMood": 8 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Это его работа" },
+      { "outcome": "bonus", "label": "Выписать премию (2000₽)" },
+      { "outcome": "praise", "label": "Похвалить при всех" }
+    ],
+    "cooldown": 22
+  },
+  {
+    "id": "lazy_caught",
+    "template": "{actor} весь день смотрит сериалы вместо работы. Думает, никто не видит.",
+    "conditions": { "actorTraits": ["ленивый"], "needsTarget": false },
+    "outcomes": {
+      "ignore": { "productivity": -10, "teamMood": -5 },
+      "scold": { "stress": 15, "productivity": 10, "mood": -10 },
+      "motivate": { "productivity": 15, "mood": 5, "loyalty": 5 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Пусть отдохнёт" },
+      { "outcome": "scold", "label": "Жёстко отчитать" },
+      { "outcome": "motivate", "label": "Замотивировать целью" }
+    ],
+    "cooldown": 15
+  },
+  {
+    "id": "office_romance",
+    "template": "{actor} и {target} подозрительно часто пьют кофе вдвоём. Офисный роман?",
+    "conditions": { "needsTarget": true, "sameDepartment": true },
+    "outcomes": {
+      "ignore": { "relationship": 20, "mood": 10 },
+      "ban": { "relationship": -10, "mood": -15, "stress": 10 },
+      "bless": { "relationship": 30, "mood": 15, "teamMood": 8 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Не моё дело" },
+      { "outcome": "ban", "label": "Запретить отношения на работе" },
+      { "outcome": "bless", "label": "Благословить (и проследить)" }
+    ],
+    "cooldown": 30
+  },
+  {
+    "id": "panic_deadline",
+    "template": "{actor} в панике: дедлайн завтра, а проект не готов. Бегает по офису.",
+    "conditions": { "actorTraits": ["паникёр"], "minStress": 50, "needsTarget": false },
+    "outcomes": {
+      "ignore": { "stress": 20, "mood": -15, "teamMood": -10 },
+      "help": { "stress": -25, "mood": 10, "cost": 800 },
+      "calm": { "stress": -10, "mood": 5, "relationship": 8 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Сам разберётся" },
+      { "outcome": "help", "label": "Нанять фрилансера в помощь (800₽)" },
+      { "outcome": "calm", "label": "Успокоить и расставить приоритеты" }
+    ],
+    "cooldown": 20
+  },
+  {
+    "id": "toxic_clash",
+    "template": "{actor} устроил скандал с {target} на планёрке. Все в шоке.",
+    "conditions": { "actorTraits": ["токсичный"], "needsTarget": true, "relationshipBelow": 0 },
+    "outcomes": {
+      "ignore": { "relationship": -25, "teamMood": -15, "stress": 10 },
+      "mediate": { "relationship": 20, "stress": -5, "cost": 300 },
+      "fire": { "removeActor": true, "teamMood": 15 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Пусть сами разбираются" },
+      { "outcome": "mediate", "label": "Провести медиацию (300₽)" },
+      { "outcome": "fire", "label": "Уволить токсика" }
+    ],
+    "cooldown": 18
+  },
+  {
+    "id": "birthday",
+    "template": "У {actor} день рождения. Принёс торт, ждёт поздравлений.",
+    "conditions": { "needsTarget": false },
+    "outcomes": {
+      "ignore": { "mood": -10, "loyalty": -10 },
+      "celebrate": { "mood": 20, "loyalty": 15, "teamMood": 12, "cost": 600 },
+      "card": { "mood": 8, "loyalty": 5, "teamMood": 4 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Забыть (рискованно)" },
+      { "outcome": "celebrate", "label": "Закатить корпоратив (600₽)" },
+      { "outcome": "card", "label": "Подписать открытку" }
+    ],
+    "cooldown": 35
+  },
+  {
+    "id": "mentor_moment",
+    "template": "{actor} взял шефство над {target} и учит его работать.",
+    "conditions": { "actorTraits": ["душа компании", "гений", "миротворец"], "needsTarget": true },
+    "outcomes": {
+      "ignore": { "relationship": 10 },
+      "support": { "relationship": 25, "productivity": 15, "teamMood": 10, "cost": 400 },
+      "formalize": { "relationship": 15, "loyalty": 12, "productivity": 8 }
+    },
+    "choices": [
+      { "outcome": "ignore", "label": "Хорошо, не мешаю" },
+      { "outcome": "support", "label": "Выделить бюджет на менторство (400₽)" },
+      { "outcome": "formalize", "label": "Назначить официальным наставником" }
+    ],
+    "cooldown": 28
+  }
+]
