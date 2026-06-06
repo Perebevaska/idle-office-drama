@@ -1,12 +1,15 @@
 import { useEffect } from 'react'
 import { useGameStore } from './store/gameStore'
-import { companyMood, TICK_MS } from './core/engine'
+import { companyMood, financials, TICK_MS } from './core/engine'
 import { EmployeeCard } from './ui/components/EmployeeCard'
 import { EventCard } from './ui/components/EventCard'
+import { HireSection } from './ui/components/HireSection'
 
 function Header() {
   const state = useGameStore((s) => s.state)
   const mood = companyMood(state.employees)
+  const fin = financials(state.employees)
+  const debt = state.money < 0
   return (
     <header className="sticky top-0 z-10 border-b border-slate-700/60 bg-[#0f1115]/90 px-4 py-3 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center justify-between">
@@ -18,10 +21,21 @@ function Header() {
         </div>
         <div className="flex gap-3 text-right text-xs">
           <div>
-            <div className="font-semibold text-emerald-400 tabular-nums">
+            <div
+              className={`font-semibold tabular-nums ${
+                debt ? 'text-rose-400' : 'text-emerald-400'
+              }`}
+            >
               {state.money.toLocaleString('ru-RU')}₽
             </div>
-            <div className="text-slate-500">касса</div>
+            <div
+              className={`tabular-nums ${
+                fin.net >= 0 ? 'text-emerald-600' : 'text-rose-500'
+              }`}
+            >
+              {fin.net >= 0 ? '+' : ''}
+              {fin.net}/тик
+            </div>
           </div>
           <div>
             <div className="font-semibold text-amber-300 tabular-nums">
@@ -56,6 +70,17 @@ function OfflineBanner() {
         ? ` Накопилось ${summary.newEventCount} новых ситуаций ↓`
         : ' Тихо. Подозрительно тихо.'}
       <span className="ml-1 text-violet-400">(скрыть)</span>
+    </div>
+  )
+}
+
+function DebtBanner() {
+  const money = useGameStore((s) => s.state.money)
+  if (money >= 0) return null
+  return (
+    <div className="mx-auto mb-3 max-w-md rounded-xl border border-rose-500/50 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+      ⚠️ Компания в долгах ({money.toLocaleString('ru-RU')}₽). Команда нервничает:
+      стресс растёт, настроение падает. Подними доход или сократи штат.
     </div>
   )
 }
@@ -112,14 +137,15 @@ function Feed() {
 
 function Employees() {
   const employees = useGameStore((s) => s.state.employees)
+  const fire = useGameStore((s) => s.fire)
   return (
     <div className="mt-6">
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Команда
+        Команда · {employees.length}
       </h2>
       <div className="space-y-2">
         {employees.map((e) => (
-          <EmployeeCard key={e.id} emp={e} />
+          <EmployeeCard key={e.id} emp={e} onFire={fire} />
         ))}
       </div>
     </div>
@@ -140,8 +166,10 @@ export default function App() {
       <Header />
       <main className="mx-auto max-w-md px-4 pt-4">
         <OfflineBanner />
+        <DebtBanner />
         <PendingEvents />
         <Employees />
+        <HireSection />
         <Feed />
         <button
           onClick={() => {

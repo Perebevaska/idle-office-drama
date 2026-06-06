@@ -9,7 +9,18 @@ import {
   trimFeed,
 } from '../core/engine'
 import { resolveEvent } from '../core/events'
-import type { GameEvent, GameState } from '../core/types'
+import {
+  addEmployee,
+  createEmployee,
+  hireCost,
+  removeEmployee,
+} from '../core/employees'
+import type { Employee, GameEvent, GameState } from '../core/types'
+
+/** Сгенерировать свежий пул кандидатов на найм. */
+function rollCandidates(count = 3): Employee[] {
+  return Array.from({ length: count }, () => createEmployee())
+}
 
 const SAVE_KEY = 'idle-office-drama:save:v1'
 
@@ -17,7 +28,10 @@ function load(): GameState | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as GameState
+    const state = JSON.parse(raw) as GameState
+    // миграция: поля, добавленные позже
+    if (!state.scheduled) state.scheduled = []
+    return state
   } catch {
     return null
   }
@@ -53,10 +67,18 @@ interface OfflineSummary {
 interface GameStore {
   state: GameState
   offlineSummary: OfflineSummary | null
+  /** эфемерный пул кандидатов на найм (не сохраняется) */
+  candidates: Employee[]
   /** один игровой тик (вызывается таймером) */
   tick: () => void
   /** разрешить событие выбором игрока */
   resolve: (eventId: string, outcomeKey: string) => void
+  /** нанять кандидата (списывает hireCost) */
+  hire: (candidateId: string) => void
+  /** уволить сотрудника */
+  fire: (employeeId: string) => void
+  /** перегенерировать список кандидатов */
+  rerollCandidates: () => void
   /** сбросить прогресс */
   reset: () => void
   /** скрыть плашку офлайн-сводки */
@@ -83,6 +105,7 @@ function boot(): { state: GameState; offlineSummary: OfflineSummary | null } {
 
 export const useGameStore = create<GameStore>((set, get) => ({
   ...boot(),
+  candidates: rollCandidates(),
 
   tick: () => {
     const state = get().state
@@ -106,10 +129,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ state: freshRefs(state) })
   },
 
+  hire: (candidateId) => {
+    const state = get().state
+    const candidate = get().candidates.find((c) => c.id === candidateId)
+    if (!candidate) return
+    const cost = hireCost(candidate)
+    if (state.money < cost) return // не хватает денег
+    state.money -= cost
+    state.employees = addEmployee(state.employees, candidate)
+    save(state)
+    set({
+      state: freshRefs(state),
+      candidates: get().candidates.filter((c) => c.id !== candidateId),
+    })
+  },
+
+  fire: (employeeId) => {
+    const state = get().state
+    const emp = state.employees.find((e) => e.id === employeeId)
+    if (!emp) return
+    state.employees = removeEmployee(state.employees, employeeId)
+    // убрать связанные нерешённые события
+    state.pending = state.pending.filter(
+      (ev) => ev.actorId !== employeeId && ev.targetId !== employeeId,
+    )
+    save(state)
+    set({ state: freshRefs(state) })
+  },
+
+  rerollCandidates: () => set({ candidates: rollCandidates() }),
+
   reset: () => {
     const fresh = createInitialState()
     save(fresh)
-    set({ state: fresh, offlineSummary: null })
+    set({ state: fresh, offlineSummary: null, candidates: rollCandidates() })
   },
 
   dismissOffline: () => set({ offlineSummary: null }),

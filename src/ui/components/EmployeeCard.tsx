@@ -9,7 +9,12 @@ const DEPT_COLOR: Record<string, string> = {
   'бухгалтерия': 'bg-teal-500/20 text-teal-300',
 }
 
-export function EmployeeCard({ emp }: { emp: Employee }) {
+interface EmployeeCardProps {
+  emp: Employee
+  onFire?: (id: string) => void
+}
+
+export function EmployeeCard({ emp, onFire }: EmployeeCardProps) {
   return (
     <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-3">
       <div className="mb-2 flex items-center justify-between">
@@ -18,14 +23,30 @@ export function EmployeeCard({ emp }: { emp: Employee }) {
           <span className="ml-2 text-xs text-slate-400">
             {emp.role} · ур.{emp.level}
           </span>
+          <span className="ml-2 text-[10px] text-slate-500">
+            {emp.salary}₽/тик
+          </span>
         </div>
-        <span
-          className={`rounded-full px-2 py-0.5 text-[10px] ${
-            DEPT_COLOR[emp.department] ?? 'bg-slate-600/40 text-slate-300'
-          }`}
-        >
-          {emp.department}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] ${
+              DEPT_COLOR[emp.department] ?? 'bg-slate-600/40 text-slate-300'
+            }`}
+          >
+            {emp.department}
+          </span>
+          {onFire && (
+            <button
+              onClick={() => {
+                if (confirm(`Уволить ${emp.name}?`)) onFire(emp.id)
+              }}
+              title="Уволить"
+              className="rounded-md border border-slate-600/60 px-1.5 py-0.5 text-[10px] text-slate-500 transition-colors hover:border-rose-500/60 hover:text-rose-400"
+            >
+              уволить
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mb-2 flex flex-wrap gap-1">

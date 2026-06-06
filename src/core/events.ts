@@ -19,6 +19,10 @@ import type {
 
 export const TEMPLATES = rawTemplates as unknown as EventTemplate[]
 
+const TEMPLATE_BY_ID: Record<string, EventTemplate> = Object.fromEntries(
+  TEMPLATES.map((t) => [t.id, t]),
+)
+
 let instanceCounter = 0
 function nextInstanceId(): string {
   instanceCounter += 1
@@ -93,6 +97,26 @@ function fillTemplate(text: string, actor: Employee, target?: Employee): string 
     .replace(/\{target\}/g, target?.name ?? '')
 }
 
+/** Собрать конкретный GameEvent из шаблона и участников. */
+function buildEvent(
+  template: EventTemplate,
+  actor: Employee,
+  target: Employee | undefined,
+  tick: number,
+): GameEvent {
+  return {
+    id: nextInstanceId(),
+    templateId: template.id,
+    tick,
+    text: fillTemplate(template.template, actor, target),
+    actorId: actor.id,
+    targetId: target?.id,
+    outcomes: template.outcomes,
+    choices: template.choices,
+    resolved: false,
+  }
+}
+
 /**
  * Попытаться сгенерировать ровно одно новое событие.
  * Учитывает cooldown шаблонов. Возвращает событие или null.
@@ -115,18 +139,30 @@ export function generateEvent(
   if (allMatches.length === 0) return null
 
   const m = pick(allMatches, rng)
-  const event: GameEvent = {
-    id: nextInstanceId(),
-    templateId: m.template.id,
-    tick: state.tick,
-    text: fillTemplate(m.template.template, m.actor, m.target),
-    actorId: m.actor.id,
-    targetId: m.target?.id,
-    outcomes: m.template.outcomes,
-    choices: m.template.choices,
-    resolved: false,
+  return buildEvent(m.template, m.actor, m.target, state.tick)
+}
+
+/**
+ * Активировать отложенные события цепочек, у которых наступил fireTick.
+ * Возвращает массив новых событий (и чистит scheduled). Мутирует state.
+ */
+export function fireScheduled(state: GameState): GameEvent[] {
+  if (state.scheduled.length === 0) return []
+  const due = state.scheduled.filter((s) => s.fireTick <= state.tick)
+  if (due.length === 0) return []
+  state.scheduled = state.scheduled.filter((s) => s.fireTick > state.tick)
+
+  const events: GameEvent[] = []
+  for (const sch of due) {
+    const template = TEMPLATE_BY_ID[sch.templateId]
+    const actor = getEmployee(state.employees, sch.actorId)
+    if (!template || !actor) continue // участник мог уволиться
+    const target = sch.targetId
+      ? getEmployee(state.employees, sch.targetId)
+      : undefined
+    events.push(buildEvent(template, actor, target, state.tick))
   }
-  return event
+  return events
 }
 
 function applyToEmployee(emp: Employee, fx: OutcomeEffect): void {
@@ -181,6 +217,16 @@ export function resolveEvent(
   if (fx.removeActor && actor) {
     state.employees = state.employees.filter((e) => e.id !== actor.id)
     for (const e of state.employees) delete e.relationships[actor.id]
+  }
+
+  // цепочка: запланировать следующее событие (если actor ещё в штате)
+  if (fx.chain && actor && !fx.removeActor) {
+    state.scheduled.push({
+      templateId: fx.chain.templateId,
+      fireTick: state.tick + fx.chain.afterTicks,
+      actorId: actor.id,
+      targetId: target?.id,
+    })
   }
 
   // лог в историю участников

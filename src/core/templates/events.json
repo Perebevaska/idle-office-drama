@@ -4,7 +4,7 @@
     "template": "{actor} съел йогурт {target} из холодильника. {target} в ярости.",
     "conditions": { "sameDepartment": false, "needsTarget": true, "relationshipBelow": 30 },
     "outcomes": {
-      "ignore": { "relationship": -10, "mood": -5 },
+      "ignore": { "relationship": -10, "mood": -5, "chain": { "templateId": "toxic_clash", "afterTicks": 4 } },
       "resolve": { "relationship": 15, "cost": 500 },
       "fire": { "removeActor": true, "teamMood": -20 }
     },
@@ -100,7 +100,7 @@
     "template": "{actor} в панике: дедлайн завтра, а проект не готов. Бегает по офису.",
     "conditions": { "actorTraits": ["паникёр"], "minStress": 50, "needsTarget": false },
     "outcomes": {
-      "ignore": { "stress": 20, "mood": -15, "teamMood": -10 },
+      "ignore": { "stress": 20, "mood": -15, "teamMood": -10, "chain": { "templateId": "burnout", "afterTicks": 3 } },
       "help": { "stress": -25, "mood": 10, "cost": 800 },
       "calm": { "stress": -10, "mood": 5, "relationship": 8 }
     },

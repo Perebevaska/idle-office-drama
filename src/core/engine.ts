@@ -2,7 +2,7 @@
 // Чистое ядро, не знает про React/Telegram/таймеры — вызывается извне.
 
 import { clampStat, companyMood, createStartingTeam } from './employees'
-import { generateEvent } from './events'
+import { fireScheduled, generateEvent } from './events'
 import type { Employee, GameEvent, GameState } from './types'
 
 /** Сколько реального времени в одном тике (мс). */
@@ -17,6 +17,23 @@ export const MAX_PENDING = 6
 /** Сколько событий хранить в ленте. */
 export const FEED_LIMIT = 50
 
+/** Доход за единицу продуктивности за тик. */
+export const REVENUE_PER_PROD = 1.2
+
+export interface Financials {
+  revenue: number
+  salaries: number
+  net: number
+}
+
+/** Финансы за тик при текущем штате. */
+export function financials(employees: Employee[]): Financials {
+  const totalProd = employees.reduce((s, e) => s + e.stats.productivity, 0)
+  const revenue = Math.round(totalProd * REVENUE_PER_PROD)
+  const salaries = employees.reduce((s, e) => s + e.salary, 0)
+  return { revenue, salaries, net: revenue - salaries }
+}
+
 export function createInitialState(rng: () => number = Math.random): GameState {
   return {
     tick: 0,
@@ -25,6 +42,7 @@ export function createInitialState(rng: () => number = Math.random): GameState {
     employees: createStartingTeam(rng),
     pending: [],
     lastFired: {},
+    scheduled: [],
     feed: [],
   }
 }
@@ -54,13 +72,27 @@ export function tick(
 ): void {
   state.tick += 1
 
-  // пассивный доход от продуктивности
+  // доход от продуктивности минус зарплаты
   for (const e of state.employees) driftStats(e)
-  const totalProd = state.employees.reduce(
-    (s, e) => s + e.stats.productivity,
-    0,
-  )
-  state.money += Math.round(totalProd * 0.1)
+  const fin = financials(state.employees)
+  state.money += fin.net
+
+  // долг давит на команду: растёт стресс, падает настроение
+  if (state.money < 0) {
+    for (const e of state.employees) {
+      e.stats.stress = clampStat(e.stats.stress + 2)
+      e.stats.mood = clampStat(e.stats.mood - 1)
+    }
+  }
+
+  // отложенные события цепочек — в первую очередь
+  const chained = fireScheduled(state)
+  for (const ev of chained) {
+    if (state.pending.length < MAX_PENDING) {
+      state.pending.push(ev)
+      state.lastFired[ev.templateId] = state.tick
+    }
+  }
 
   // генерация события
   if (

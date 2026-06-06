@@ -86,11 +86,44 @@ export function createEmployee(opts: CreateEmployeeOpts = {}): Employee {
     role: pick(ROLES[department], rng),
     department,
     level: 1,
+    salary: 30 + Math.round(rng() * 40), // 30–70 за тик
     traits,
     stats,
     relationships: {},
     history: [],
   }
+}
+
+/** Разовая стоимость найма (зависит от зарплаты). */
+export function hireCost(emp: Employee): number {
+  return emp.salary * 20
+}
+
+/**
+ * Принять сотрудника в команду: завести нейтральные отношения со всеми.
+ * Мутирует массив employees (возвращает новый).
+ */
+export function addEmployee(
+  employees: Employee[],
+  emp: Employee,
+): Employee[] {
+  for (const e of employees) {
+    e.relationships[emp.id] = 0
+    emp.relationships[e.id] = 0
+  }
+  return [...employees, emp]
+}
+
+/**
+ * Уволить сотрудника: убрать из списка и подчистить упоминания в отношениях.
+ * Возвращает новый массив.
+ */
+export function removeEmployee(
+  employees: Employee[],
+  id: string,
+): Employee[] {
+  for (const e of employees) delete e.relationships[id]
+  return employees.filter((e) => e.id !== id)
 }
 
 /** Стартовая команда: 3 сотрудника (Стажёр-CEO). */

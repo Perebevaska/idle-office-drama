@@ -38,6 +38,7 @@ export interface Employee {
   role: string
   department: Department
   level: number // 1–10
+  salary: number // зарплата за тик
   traits: Trait[]
   stats: EmployeeStats
   relationships: Record<string, number> // employeeId → [-100, 100]
@@ -64,6 +65,24 @@ export interface OutcomeEffect {
   cost?: number
   /** уволить actor */
   removeActor?: boolean
+  /** запланировать следующее событие (цепочка) */
+  chain?: ChainSpec
+}
+
+/** Описание отложенного продолжения цепочки. */
+export interface ChainSpec {
+  /** id шаблона, который сработает */
+  templateId: string
+  /** через сколько тиков */
+  afterTicks: number
+}
+
+/** Запланированное (отложенное) событие в очереди. */
+export interface ScheduledEvent {
+  templateId: string
+  fireTick: number
+  actorId: string
+  targetId?: string
 }
 
 export interface Choice {
@@ -126,6 +145,8 @@ export interface GameState {
   pending: GameEvent[]
   /** последние срабатывания шаблонов: templateId → tick */
   lastFired: Record<string, number>
+  /** отложенные события цепочек */
+  scheduled: ScheduledEvent[]
   /** лента (история) уже свершившихся событий, новые сверху */
   feed: GameEvent[]
 }
