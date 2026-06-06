@@ -29,8 +29,18 @@ function load(): GameState | null {
     const raw = localStorage.getItem(SAVE_KEY)
     if (!raw) return null
     const state = JSON.parse(raw) as GameState
+    // валидация: битый/устаревший сейв → начать заново
+    if (
+      typeof state.money !== 'number' ||
+      !Array.isArray(state.employees) ||
+      !Array.isArray(state.pending) ||
+      !Array.isArray(state.feed)
+    ) {
+      return null
+    }
     // миграция: поля, добавленные позже
-    if (!state.scheduled) state.scheduled = []
+    if (!Array.isArray(state.scheduled)) state.scheduled = []
+    if (!state.lastFired) state.lastFired = {}
     return state
   } catch {
     return null

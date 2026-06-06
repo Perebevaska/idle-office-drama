@@ -147,7 +147,7 @@ export function generateEvent(
  * Возвращает массив новых событий (и чистит scheduled). Мутирует state.
  */
 export function fireScheduled(state: GameState): GameEvent[] {
-  if (state.scheduled.length === 0) return []
+  if (!state.scheduled || state.scheduled.length === 0) return []
   const due = state.scheduled.filter((s) => s.fireTick <= state.tick)
   if (due.length === 0) return []
   state.scheduled = state.scheduled.filter((s) => s.fireTick > state.tick)
